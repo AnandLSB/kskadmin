@@ -147,6 +147,7 @@ const Activities = () => {
       .then(() => {
         setCreateOpen(false);
         clearCreateState();
+        alert("Activity created successfully!");
       });
   };
 
@@ -177,6 +178,7 @@ const Activities = () => {
       .then(() => {
         setEditOpen(false);
         setEditObj({});
+        alert("Activity updated successfully!");
       });
   };
 
@@ -202,6 +204,7 @@ const Activities = () => {
             setDeleteOpen(false);
             setDeleteId();
             setActivityName("");
+            alert("Activity deleted successfully!");
           });
       });
   };
@@ -582,9 +585,9 @@ const Activities = () => {
         </button>
       </div>
 
-      <div className="flex flex-wrap flex-row gap-4 p-5 border border-black">
+      <div className="flex flex-row gap-4 p-5 border border-black">
         {/*Active Activities Col*/}
-        <div class="flex-auto flex-col mr-10">
+        <div class="flex-col h-[592px] w-3/5 mr-10 overflow-y-scroll">
           Active Activities
           <div className="py-4">
             {active.map((activity) => (
@@ -646,7 +649,7 @@ const Activities = () => {
         </div>
 
         {/*Inactive Activities Col*/}
-        <div class="flex-auto flex-col ml-10">
+        <div class="flex-col h-[592px] w-3/5 ml-10 overflow-y-scroll">
           Inactive Activities
           <div className="py-4">
             {inactive.map((activity) => (

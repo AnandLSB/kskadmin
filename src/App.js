@@ -7,6 +7,10 @@ import Signin from "./components/Signin";
 import Signup from "./components/Signup";
 import Dashboard from "./components/Dashboard";
 import Activities from "./components/Activities";
+import VolunteerAcc from "./components/VolunteerAcc";
+import Profile from "./components/Profile";
+import BeneficiaryInfo from "./components/BeneficiaryInfo";
+import Account from "./components/Account";
 import Sidebar from "./Sidebar";
 
 function App() {
@@ -43,6 +47,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/activities" element={<Activities />} />
+            <Route path="/volunteeracc" element={<VolunteerAcc />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/beneficiaryinfo" element={<BeneficiaryInfo />} />
+            <Route path="/account" element={<Account />} />
           </Routes>
         </div>
       </div>
