@@ -81,9 +81,10 @@ const Sidebar = () => {
                   ></path>
                 </svg>
               </span>
-              <a href="#">
-                <span className="ml-2">Forums</span>
-              </a>
+
+              <span className="ml-2">
+                <Link to="/forums">Forums</Link>
+              </span>
             </li>
             <li className="mb-2 py-4 text-black flex flex-row  border-gray-300 hover:text-black   hover:bg-gray-300  hover:font-bold rounded-lg">
               <span>
@@ -121,9 +122,9 @@ const Sidebar = () => {
                   />
                 </svg>
               </span>
-              <a href="#">
-                <span className="ml-2">Analytics</span>
-              </a>
+              <span className="ml-2">
+                <Link to="/analytics">Analytics</Link>
+              </span>
             </li>
             <li className="mb-2 py-4 text-black flex flex-row  border-gray-300 hover:text-black   hover:bg-gray-300  hover:font-bold rounded-lg">
               <span>

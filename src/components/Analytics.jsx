@@ -17,9 +17,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import Select from "react-select";
 
 const Analytics = () => {
-  const [totalVolunteers, setTotalVolunteers] = useState(0);
+  const [totalVolunteers, setTotalVolunteers] = useState([]);
   const [totalHours, setTotalHours] = useState([]);
   const [basis, setBasis] = useState();
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,21 @@ const Analytics = () => {
     startDate: null,
     endDate: null,
   });
+  const basisData = [
+    { value: "thisMonth", label: "This Month" },
+    { value: "pastMonth", label: "Past Month" },
+    { value: "past3Months", label: "Past 3 Months" },
+  ];
+
+  const analyticsData = [
+    { value: "newVolunteers", label: "New Volunteers" },
+
+    { value: "totalVolunteeredHours", label: "Total Volunteered Hours" },
+    {
+      value: "totalNoVolunteered",
+      label: "Total Number of Volunteers Volunteered",
+    },
+  ];
 
   function getWeek(date) {
     let monthStart = new Date(date);
@@ -35,39 +51,6 @@ const Analytics = () => {
     let offset = ((monthStart.getDay() + 1) % 7) - 1; // -1 is for a week starting on Monday
     return Math.ceil((date.getDate() + offset) / 7);
   }
-
-  const getThisMonth = () => {
-    const endDate = new Date();
-    const startDate = new Date();
-
-    startDate.setHours(0, 0, 0, 0);
-    startDate.setDate(1);
-
-    endDate.setMonth(endDate.getMonth() + 1);
-    endDate.setDate(0);
-    endDate.setHours(23, 59, 59, 999);
-
-    return {
-      startDate: startDate,
-      endDate: endDate,
-    };
-  };
-
-  const getPastMonth = () => {
-    const endDate = new Date();
-    const startDate = new Date();
-
-    endDate.setHours(23, 59, 59, 999);
-    endDate.setDate(0);
-    startDate.setMonth(startDate.getMonth() - 1);
-    startDate.setDate(1);
-    startDate.setHours(0, 0, 0, 0);
-
-    return {
-      startDate: startDate,
-      endDate: endDate,
-    };
-  };
 
   const setDate = (selectedBasis) => {
     let endDate = new Date();
@@ -107,6 +90,25 @@ const Analytics = () => {
 
   console.log("Date set: ", dateSet);
 
+  //New volunteers?
+
+  const getNewVolunteers = async (date) => {
+    const ref = collection(db, "volunteer");
+    const q = query(
+      ref,
+      where("accountCreationDate", ">=", date.startDate),
+      where("accountCreationDate", "<=", date.endDate)
+    );
+
+    const snapshot = await getDocs(q);
+
+    console.log("Size: ", snapshot.size);
+
+    snapshot.forEach((doc) => {
+      console.log(doc.data());
+    });
+  };
+
   const getTotalVolunteers = async () => {
     const ref = collection(db, "volunteer");
     const snapshot = await getCountFromServer(ref);
@@ -114,19 +116,13 @@ const Analytics = () => {
   };
 
   const getTotalVolunteeredHours = async (basis, date) => {
-    let totalHours = 0;
-
     const q = query(
       ref,
       where("checkOutTime", ">=", date.startDate),
       where("checkOutTime", "<=", date.endDate)
     );
 
-    console.log("Passed Obj", date);
-
     const snapshot = await getDocs(q);
-
-    let dataByMonthArr = [];
 
     console.log("Size: ", snapshot.size);
 
@@ -137,38 +133,17 @@ const Analytics = () => {
         const week = getWeek(doc.data().checkOutTime.toDate());
         const totalHours = doc.data().totalHours;
 
-        // If data for this week doesn't exist in the Map, add it
         if (!dataByWeekMap.has(week)) {
           dataByWeekMap.set(week, { week: "Week " + week, totalHours });
-        }
-        // Otherwise, update the total hours for the existing data
-        else {
+        } else {
           const dataForWeek = dataByWeekMap.get(week);
           dataForWeek.totalHours += totalHours;
           dataByWeekMap.set(week, dataForWeek);
         }
-
-        /*
-        if (
-          !dataByMonthArr.some(
-            (obj) => obj.week === getWeek(doc.data().checkOutTime.toDate())
-          )
-        ) {
-          dataByMonthArr.push({
-            week: "Week " + getWeek(doc.data().checkOutTime.toDate()),
-            totalHours: doc.data().totalHours,
-          });
-        } else {
-          dataByMonthArr.forEach((obj) => {
-            if (obj.week === getWeek(doc.data().checkOutTime.toDate())) {
-              obj.totalHours += doc.data().totalHours;
-            }
-          });
-        }
-        */
       }
 
       const dataByWeekArr = Array.from(dataByWeekMap.values());
+      console.log("Data by week: ", dataByWeekArr);
       setTotalHours(dataByWeekArr);
     } else if (basis === "past3Months") {
       const dataByMonthMap = new Map();
@@ -191,51 +166,13 @@ const Analytics = () => {
       }
 
       const dataByMonthArr = Array.from(dataByMonthMap.values());
-
       console.log("Data by month: ", dataByMonthArr);
-
       setTotalHours(dataByMonthArr);
     }
 
     console.log("Basis: ", basis);
 
     setLoading(false);
-
-    /*
-    for (const doc of snapshot.docs) {
-      totalHours += doc.data().totalHours;
-
-      console.log(
-        "Week: ",
-        getWeek(doc.data().checkOutTime.toDate()),
-        doc.data().checkOutTime.toDate()
-      );
-
-      if (basis === "thisMonth" || basis === "pastMonth") {
-        dataByMonthArr.push({
-          week: "Week " + getWeek(doc.data().checkOutTime.toDate()),
-          totalHours: doc.data().totalHours,
-        });
-      } else if (basis === "past3Months") {
-        const month = new Date(doc.data().checkOutTime.toDate())
-          .toISOString()
-          .slice(0, 7);
-
-        if (!dataByMonthArr.some((obj) => obj.month === month)) {
-          dataByMonthArr.push({
-            month: month,
-            totalHours: doc.data().totalHours,
-          });
-        } else {
-          dataByMonthArr.forEach((obj) => {
-            if (obj.month === month) {
-              obj.totalHours += doc.data().totalHours;
-            }
-          });
-        }
-      }
-    }
-    */
   };
 
   const getTotalActivities = async () => {
@@ -244,115 +181,112 @@ const Analytics = () => {
     console.log(snapshot.data().count);
   };
 
-  const getNoOfVolunteersVolunteered = async () => {
+  const getNoOfVolunteersVolunteered = async (basis, date) => {
     const ref = collection(db, "volunteerParticipation");
     const q = query(
       ref,
-      where("checkInTime", ">=", new Date("2023-02-01")),
-      where("checkInTime", "<=", new Date("2023-02-28"))
+      where("checkInTime", ">=", date.startDate),
+      where("checkInTime", "<=", date.endDate)
     );
     let volunteers = [];
 
     const snapshot = await getDocs(q);
 
-    //Pushing if the activity was checked in within the date range
-    snapshot.forEach((doc) => {
-      if (
-        doc.data().checkInTime.toDate() >= new Date("2023-02-01") &&
-        doc.data().checkInTime.toDate() <= new Date("2023-02-28")
-      ) {
-        console.log("Month: ", doc.data().checkInTime.toDate().getMonth() + 1);
-        volunteers.push(doc.data().volunteerId);
+    if (basis === "thisMonth" || basis === "pastMonth") {
+      const dataByWeekMap = new Map();
+      const volunteersByWeek = new Map();
+
+      for (const doc of snapshot.docs) {
+        const week = getWeek(doc.data().checkInTime.toDate());
+
+        if (!dataByWeekMap.has(week)) {
+          dataByWeekMap.set(week, { week: "Week " + week, volunteerCount: 1 });
+          volunteersByWeek.set(week, [doc.data().volunteerId]);
+        } else {
+          const dataForWeek = dataByWeekMap.get(week);
+
+          if (!volunteersByWeek.get(week).includes(doc.data().volunteerId)) {
+            dataForWeek.volunteerCount += 1;
+            dataByWeekMap.set(week, dataForWeek);
+            volunteersByWeek.get(week).push(doc.data().volunteerId);
+          }
+        }
       }
-    });
 
-    //Removing duplicate entries for a respective volunteer
-    let uniqueVolunteers = volunteers.filter((item, index) => {
-      return volunteers.indexOf(item) === index;
-    });
+      const dataByWeekArr = Array.from(dataByWeekMap.values());
+      setTotalVolunteers(dataByWeekArr);
+      console.log("Data by week: ", dataByWeekMap);
+    } else if (basis === "past3Months") {
+      const dataByMonthMap = new Map();
+      const volunteersByMonth = new Map();
 
-    console.log(uniqueVolunteers);
+      for (const doc of snapshot.docs) {
+        const month = new Date(doc.data().checkInTime.toDate())
+          .toISOString()
+          .slice(0, 7);
+
+        if (!dataByMonthMap.has(month)) {
+          dataByMonthMap.set(month, {
+            month: month,
+            volunteerCount: 1,
+          });
+          volunteersByMonth.set(month, [doc.data().volunteerId]);
+        } else {
+          const dataForMonth = dataByMonthMap.get(month);
+
+          if (!volunteersByMonth.get(month).includes(doc.data().volunteerId)) {
+            dataForMonth.volunteerCount += 1;
+            dataByMonthMap.set(month, dataForMonth);
+            volunteersByMonth.get(month).push(doc.data().volunteerId);
+          }
+        }
+      }
+
+      const dataByMonthArr = Array.from(dataByMonthMap.values());
+      setTotalVolunteers(dataByMonthArr);
+      console.log("Data by month: ", dataByMonthMap);
+    }
   };
 
-  const Chart = ({ hours }) => {
-    return (
-      <ResponsiveContainer width="50%" aspect={2}>
-        <LineChart
-          width={500}
-          height={300}
-          data={hours}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="week" />
-          <YAxis
-            label={{ value: "Hours", angle: -90, position: "insideLeft" }}
-          />
-          <Tooltip />
-          <Legend />
-          <Line
-            type="monotone"
-            dataKey="totalHours"
-            stroke="#8884d8"
-            activeDot={{ r: 8 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    );
-  };
+  console.log("Total volunteers: ", totalVolunteers);
 
   return (
     <div>
       <div className="flex-auto pb-10 bg-[#EB4335] text-white">Analytics</div>
-      <button
-        onClick={async () => {
-          let date = setDate("thisMonth");
-          await getTotalVolunteeredHours("thisMonth", date);
+      <Select
+        options={analyticsData}
+        menuPortalTarget={document.body}
+        name="color"
+        className="bg-[#E9ECEF] mt-1"
+        styles={{
+          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+          control: (base) => ({
+            ...base,
+            backgroundColor: "#E9ECEF",
+          }),
         }}
-      >
-        Click
-      </button>
-
-      <button
-        onClick={() => {
-          setDate("thisMonth");
-          setBasis("thisMonth");
+        isSearchable={false}
+        placeholder="Choose Analytics Data"
+      />
+      <Select
+        options={basisData}
+        menuPortalTarget={document.body}
+        name="color"
+        className="bg-[#E9ECEF] mt-1"
+        styles={{
+          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+          control: (base) => ({
+            ...base,
+            backgroundColor: "#E9ECEF",
+          }),
         }}
-      >
-        Set This Month
-      </button>
-
-      <button
-        onClick={() => {
-          setDate("pastMonth");
-          setBasis("pastMonth");
+        isSearchable={false}
+        placeholder="Set Basis"
+        onChange={(e) => {
+          setBasis(e.value);
+          setDate(e.value);
         }}
-      >
-        Set Past Month
-      </button>
-
-      <button
-        onClick={() => {
-          setDate("past3Months");
-          setBasis("past3Months");
-        }}
-      >
-        Set Past 3 Month
-      </button>
-
-      <button
-        onClick={async () => {
-          let date = setDate("pastMonth");
-          await getTotalVolunteeredHours("pastMonth", date);
-        }}
-      >
-        Past Month
-      </button>
+      />
 
       <button
         onClick={async () => {
@@ -360,6 +294,22 @@ const Analytics = () => {
         }}
       >
         Generate
+      </button>
+
+      <button
+        onClick={() => {
+          getNoOfVolunteersVolunteered(basis, dateSet);
+        }}
+      >
+        Getvolunteers
+      </button>
+
+      <button
+        onClick={() => {
+          getNewVolunteers(dateSet);
+        }}
+      >
+        New Volunteers
       </button>
 
       <button
@@ -380,7 +330,7 @@ const Analytics = () => {
           <LineChart
             width={500}
             height={300}
-            data={totalHours}
+            data={totalVolunteers}
             margin={{
               top: 5,
               right: 30,
@@ -389,7 +339,7 @@ const Analytics = () => {
             }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="week" />
+            <XAxis dataKey="month" />
             <YAxis
               label={{ value: "Hours", angle: -90, position: "insideLeft" }}
             />
@@ -397,7 +347,7 @@ const Analytics = () => {
             <Legend />
             <Line
               type="monotone"
-              dataKey="totalHours"
+              dataKey="volunteerCount"
               stroke="#8884d8"
               activeDot={{ r: 8 }}
             />

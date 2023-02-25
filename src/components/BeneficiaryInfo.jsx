@@ -12,6 +12,7 @@ import { capitalizeWords } from "../shared/sharedFunc";
 import { format } from "date-fns";
 import Modal from "react-modal";
 import Select from "react-select";
+import { getAuthor } from "../shared/sharedFunc";
 
 const BeneficiaryInfo = () => {
   const [beneficiary, setBeneficiary] = useState([]);
@@ -44,7 +45,7 @@ const BeneficiaryInfo = () => {
       const data = [];
 
       for (const doc of querySnapshot.docs) {
-        const author = await getCreatedBy(doc.data().createdBy);
+        const author = await getAuthor(doc.data().createdBy);
 
         data.push({
           ...doc.data(),
@@ -59,26 +60,6 @@ const BeneficiaryInfo = () => {
 
     return unsubscribe;
   }, []);
-
-  const getCreatedBy = async (uid) => {
-    const docRef = doc(db, "volunteer", uid);
-    var author;
-
-    await getDoc(docRef)
-      .then((doc) => {
-        console.log(doc.data().Username);
-        if (doc.exists()) {
-          author = doc.data().Username;
-        } else {
-          author = "Unknown";
-        }
-      })
-      .catch((error) => {
-        console.log("Error getting document:", error);
-      });
-
-    return author;
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
