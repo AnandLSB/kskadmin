@@ -8,6 +8,9 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import {
+  BarChart,
+  Bar,
+  Cell,
   LineChart,
   Line,
   XAxis,
@@ -18,17 +21,27 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import Select from "react-select";
+import { format } from "date-fns";
+import { capitalizeWords } from "../shared/sharedFunc";
 
 const Analytics = () => {
   const [totalVolunteers, setTotalVolunteers] = useState([]);
-  const [totalHours, setTotalHours] = useState([]);
+  const [summary, setSummary] = useState({});
+  const [newVolunteers, setNewVolunteers] = useState([]);
   const [basis, setBasis] = useState();
   const [loading, setLoading] = useState(true);
+  const [data, setData] = useState([]);
   const ref = collection(db, "volunteerParticipation");
   const [dateSet, setDateSet] = useState({
     startDate: null,
     endDate: null,
   });
+  const [dataFunc, setDataFunc] = useState({
+    function: null,
+    lineDataKey: null,
+    sideLabel: null,
+  });
+
   const basisData = [
     { value: "thisMonth", label: "This Month" },
     { value: "pastMonth", label: "Past Month" },
@@ -38,12 +51,23 @@ const Analytics = () => {
   const analyticsData = [
     { value: "newVolunteers", label: "New Volunteers" },
 
-    { value: "totalVolunteeredHours", label: "Total Volunteered Hours" },
+    {
+      value: "totalVolunteeredHours",
+      label: "Total Volunteered Hours",
+      lineDataKey: "totalHours",
+      sideLabel: "Total Hours",
+    },
     {
       value: "totalNoVolunteered",
       label: "Total Number of Volunteers Volunteered",
+      lineDataKey: "volunteerCount",
+      sideLabel: "No of Volunteers",
     },
   ];
+
+  useEffect(() => {
+    getSummary();
+  }, []);
 
   function getWeek(date) {
     let monthStart = new Date(date);
@@ -88,11 +112,8 @@ const Analytics = () => {
     };
   };
 
-  console.log("Date set: ", dateSet);
-
-  //New volunteers?
-
   const getNewVolunteers = async (date) => {
+    const volunteers = [];
     const ref = collection(db, "volunteer");
     const q = query(
       ref,
@@ -105,14 +126,28 @@ const Analytics = () => {
     console.log("Size: ", snapshot.size);
 
     snapshot.forEach((doc) => {
-      console.log(doc.data());
+      volunteers.push({
+        ...doc.data(),
+        id: doc.id,
+        accountCreationDate: doc.data().accountCreationDate.toDate(),
+      });
     });
+
+    setNewVolunteers(volunteers);
   };
 
-  const getTotalVolunteers = async () => {
-    const ref = collection(db, "volunteer");
-    const snapshot = await getCountFromServer(ref);
-    setTotalVolunteers(snapshot.data().count);
+  const getSummary = async () => {
+    const volRef = collection(db, "volunteer");
+    const actRef = collection(db, "activities");
+    const forRef = collection(db, "forums");
+    const volSnapshot = await getCountFromServer(volRef);
+    const actSnapshot = await getCountFromServer(actRef);
+    const forSnapshot = await getCountFromServer(forRef);
+    setSummary({
+      totalVolunteers: volSnapshot.data().count,
+      totalActivities: actSnapshot.data().count,
+      totalForums: forSnapshot.data().count,
+    });
   };
 
   const getTotalVolunteeredHours = async (basis, date) => {
@@ -144,7 +179,7 @@ const Analytics = () => {
 
       const dataByWeekArr = Array.from(dataByWeekMap.values());
       console.log("Data by week: ", dataByWeekArr);
-      setTotalHours(dataByWeekArr);
+      setData(dataByWeekArr);
     } else if (basis === "past3Months") {
       const dataByMonthMap = new Map();
 
@@ -167,10 +202,8 @@ const Analytics = () => {
 
       const dataByMonthArr = Array.from(dataByMonthMap.values());
       console.log("Data by month: ", dataByMonthArr);
-      setTotalHours(dataByMonthArr);
+      setData(dataByMonthArr);
     }
-
-    console.log("Basis: ", basis);
 
     setLoading(false);
   };
@@ -178,10 +211,13 @@ const Analytics = () => {
   const getTotalActivities = async () => {
     const ref = collection(db, "activities");
     const snapshot = await getCountFromServer(ref);
-    console.log(snapshot.data().count);
+    console.log("totalAct: ", snapshot.data().count);
+    setSummary({ ...summary, totalActivities: snapshot.data().count });
   };
 
   const getNoOfVolunteersVolunteered = async (basis, date) => {
+    console.log("volunteer");
+
     const ref = collection(db, "volunteerParticipation");
     const q = query(
       ref,
@@ -214,7 +250,7 @@ const Analytics = () => {
       }
 
       const dataByWeekArr = Array.from(dataByWeekMap.values());
-      setTotalVolunteers(dataByWeekArr);
+      setData(dataByWeekArr);
       console.log("Data by week: ", dataByWeekMap);
     } else if (basis === "past3Months") {
       const dataByMonthMap = new Map();
@@ -243,117 +279,192 @@ const Analytics = () => {
       }
 
       const dataByMonthArr = Array.from(dataByMonthMap.values());
-      setTotalVolunteers(dataByMonthArr);
+      setData(dataByMonthArr);
       console.log("Data by month: ", dataByMonthMap);
     }
+    setLoading(false);
   };
 
-  console.log("Total volunteers: ", totalVolunteers);
-
   return (
-    <div>
+    <div className="flex flex-col">
       <div className="flex-auto pb-10 bg-[#EB4335] text-white">Analytics</div>
-      <Select
-        options={analyticsData}
-        menuPortalTarget={document.body}
-        name="color"
-        className="bg-[#E9ECEF] mt-1"
-        styles={{
-          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-          control: (base) => ({
-            ...base,
-            backgroundColor: "#E9ECEF",
-          }),
-        }}
-        isSearchable={false}
-        placeholder="Choose Analytics Data"
-      />
-      <Select
-        options={basisData}
-        menuPortalTarget={document.body}
-        name="color"
-        className="bg-[#E9ECEF] mt-1"
-        styles={{
-          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-          control: (base) => ({
-            ...base,
-            backgroundColor: "#E9ECEF",
-          }),
-        }}
-        isSearchable={false}
-        placeholder="Set Basis"
-        onChange={(e) => {
-          setBasis(e.value);
-          setDate(e.value);
-        }}
-      />
 
-      <button
-        onClick={async () => {
-          await getTotalVolunteeredHours(basis, dateSet);
-        }}
-      >
-        Generate
-      </button>
-
-      <button
-        onClick={() => {
-          getNoOfVolunteersVolunteered(basis, dateSet);
-        }}
-      >
-        Getvolunteers
-      </button>
-
-      <button
-        onClick={() => {
-          getNewVolunteers(dateSet);
-        }}
-      >
-        New Volunteers
-      </button>
-
-      <button
-        onClick={() => {
-          setTotalHours([]);
-          setDateSet({
-            startDate: null,
-            endDate: null,
-          });
-        }}
-      >
-        Clear
-      </button>
-      {loading ? (
-        <p>Loading</p>
-      ) : (
-        <ResponsiveContainer width="50%" aspect={2}>
-          <LineChart
-            width={500}
-            height={300}
-            data={totalVolunteers}
-            margin={{
-              top: 5,
-              right: 30,
-              left: 20,
-              bottom: 5,
+      <div className="flex flex-row">
+        <div className="flex flex-row items-center mr-5">
+          <p className="text-lg font-semibold mx-2">Analytics Data:</p>
+          <Select
+            options={analyticsData}
+            menuPortalTarget={document.body}
+            name="color"
+            className="bg-[#E9ECEF] mt-1"
+            styles={{
+              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+              control: (base) => ({
+                ...base,
+                backgroundColor: "#E9ECEF",
+              }),
             }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis
-              label={{ value: "Hours", angle: -90, position: "insideLeft" }}
-            />
-            <Tooltip />
-            <Legend />
-            <Line
-              type="monotone"
-              dataKey="volunteerCount"
-              stroke="#8884d8"
-              activeDot={{ r: 8 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      )}
+            isSearchable={false}
+            placeholder="Choose Analytics Data"
+            onChange={(e) => {
+              setDataFunc({
+                function: e.value,
+                lineDataKey: e.lineDataKey,
+                sideLabel: e.sideLabel,
+              });
+            }}
+          />
+        </div>
+
+        <div className="flex flex-row items-center mx-5">
+          <p className="text-lg font-semibold mx-2">Date Range:</p>
+          <Select
+            options={basisData}
+            menuPortalTarget={document.body}
+            name="color"
+            className="bg-[#E9ECEF] mt-1"
+            styles={{
+              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+              control: (base) => ({
+                ...base,
+                backgroundColor: "#E9ECEF",
+              }),
+            }}
+            isSearchable={false}
+            placeholder="Set Basis"
+            onChange={(e) => {
+              setBasis(e.value);
+              setDate(e.value);
+            }}
+          />
+        </div>
+
+        <button
+          className="bg-[#E9ECEF] mx-5 px-5 py-2 mt-1 font-semibold rounded-md"
+          onClick={() => {
+            if (dateSet.startDate !== null && dateSet.endDate !== null) {
+              if (dataFunc.function === "totalVolunteeredHours") {
+                getTotalVolunteeredHours(basis, dateSet);
+              } else if (dataFunc.function === "totalNoVolunteered") {
+                getNoOfVolunteersVolunteered(basis, dateSet);
+              } else if (dataFunc.function === "newVolunteers") {
+                getNewVolunteers(dateSet);
+              }
+            } else if (dataFunc === undefined) {
+              alert("Please select the analytics data");
+            } else {
+              alert("Please select a date range");
+            }
+          }}
+        >
+          Generate
+        </button>
+      </div>
+
+      <div className="flex h-[500px] justify-center my-10">
+        {basis === "past3Months" &&
+          dataFunc.function !== "newVolunteers" &&
+          !loading && (
+            <ResponsiveContainer width="60%" aspect={2}>
+              <LineChart
+                width={500}
+                height={300}
+                data={data}
+                margin={{
+                  top: 5,
+                  right: 30,
+                  left: 20,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis
+                  label={{
+                    value: dataFunc.sideLabel,
+                    angle: -90,
+                    position: "insideLeft",
+                  }}
+                />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey={dataFunc.lineDataKey}
+                  stroke="#8884d8"
+                  activeDot={{ r: 8 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+
+        {((basis === "thisMonth" && dataFunc.function !== "newVolunteers") ||
+          (basis === "pastMonth" && dataFunc.function !== "newVolunteers")) &&
+        !loading ? (
+          <ResponsiveContainer width="60%" aspect={2}>
+            <BarChart
+              width={500}
+              height={300}
+              data={data}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="week" />
+              <YAxis
+                label={{
+                  value: dataFunc.sideLabel,
+                  angle: -90,
+                  position: "insideLeft",
+                }}
+              />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey={dataFunc.lineDataKey} fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : null}
+
+        {dataFunc.function === "newVolunteers" && (
+          <div className="max-h-[500px] w-[500px] overflow-y-scroll ">
+            {newVolunteers.map((volunteer) => (
+              <div
+                key={volunteer.id}
+                className="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+              >
+                <div className="font-semibold">
+                  <p>{"Username: " + capitalizeWords(volunteer?.Username)}</p>
+                  <p>{"Full Name: " + capitalizeWords(volunteer?.fullName)}</p>
+                  <p>{"Phone Number: " + volunteer?.phoneNumber}</p>
+                  <p>{"Email: " + volunteer?.email}</p>
+                  <p>
+                    {"Creation Date: " +
+                      format(volunteer.accountCreationDate, "dd MMM yyyy p")}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-row justify-evenly pt-1 mt-auto">
+        <div className="flex flex-row border border-black rounded p-4 bg-[#E9ECEF] font-semibold">
+          <p className="mr-1">Total Volunteers:</p>
+          <p>{summary.totalVolunteers}</p>
+        </div>
+        <div className="flex flex-row border border-black rounded p-4 bg-[#E9ECEF] font-semibold">
+          <p className="mr-1">Total Activities:</p>
+          <p>{summary.totalActivities}</p>
+        </div>
+        <div className="flex flex-row border border-black rounded p-4 bg-[#E9ECEF] font-semibold">
+          <p className="mr-1">Total Forums:</p>
+          <p>{summary.totalForums}</p>
+        </div>
+      </div>
     </div>
   );
 };
