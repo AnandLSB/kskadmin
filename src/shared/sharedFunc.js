@@ -1,5 +1,10 @@
 import React from "react";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  getCountFromServer,
+} from "firebase/firestore";
 import { db } from "../firebase";
 
 const capitalizeWords = (activityName) => {
@@ -29,4 +34,19 @@ const getAuthor = async (uid) => {
   return author;
 };
 
-export { capitalizeWords, getAuthor };
+const getSummary = async () => {
+  const volRef = collection(db, "volunteer");
+  const actRef = collection(db, "activities");
+  const forRef = collection(db, "forums");
+  const volSnapshot = await getCountFromServer(volRef);
+  const actSnapshot = await getCountFromServer(actRef);
+  const forSnapshot = await getCountFromServer(forRef);
+
+  return {
+    totalVolunteers: volSnapshot.data().count,
+    totalActivities: actSnapshot.data().count,
+    totalForums: forSnapshot.data().count,
+  };
+};
+
+export { capitalizeWords, getAuthor, getSummary };
