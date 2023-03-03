@@ -1,12 +1,21 @@
 import React, { useLayoutEffect, useState } from "react";
 import { auth } from "../firebase";
-import { signOut } from "firebase/auth";
 import { db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { getSummary } from "../shared/sharedFunc";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { getSummary, capitalizeWords } from "../shared/sharedFunc";
+import { format } from "date-fns";
 
 const Dashboard = () => {
   const [fullName, setFullName] = useState("");
+  const [birthdays, setBirthdays] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [summary, setSummary] = useState({
     totalVolunteers: null,
     totalActivities: null,
@@ -17,16 +26,81 @@ const Dashboard = () => {
     getDashInfo();
   }, []);
 
+  const getBirthdays = async () => {
+    const todayStart = new Date();
+    const todayEnd = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const ref = collection(db, "volunteer");
+    const q = query(
+      ref,
+      where("birthdate", ">=", todayStart),
+      where("birthdate", "<=", todayEnd)
+    );
+    const volunteer = [];
+
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      querySnapshot.forEach((doc) => {
+        volunteer.push({
+          ...doc.data(),
+          id: doc.id,
+          birthdate: doc.data().birthdate.toDate(),
+        });
+      });
+
+      setBirthdays(volunteer);
+    } else {
+      setBirthdays(null);
+    }
+  };
+
+  const getTodaysActivities = async () => {
+    const todayStart = new Date();
+    const todayEnd = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const ref = collection(db, "activities");
+    const q = query(
+      ref,
+      where("activityDatetime", ">=", todayStart),
+      where("activityDatetime", "<=", todayEnd)
+    );
+    const activities = [];
+
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      querySnapshot.forEach((doc) => {
+        activities.push({
+          ...doc.data(),
+          id: doc.id,
+          activityDatetime: doc.data().activityDatetime.toDate(),
+          activityDatetimeEnd: doc.data().activityDatetimeEnd.toDate(),
+        });
+      });
+
+      setActivities(activities);
+    } else {
+      setActivities(null);
+    }
+  };
+
   const getDashInfo = async () => {
     const ref = doc(db, "admin", auth.currentUser.email);
     const docSnap = await getDoc(ref);
     const summary = await getSummary();
+    await getBirthdays();
+    getTodaysActivities();
 
     setSummary(summary);
     setFullName(docSnap.data().fullName);
   };
 
-  console.log(summary);
+  console.log(activities);
 
   return (
     <div>
@@ -36,7 +110,66 @@ const Dashboard = () => {
         </div>
         <p className="text-2xl font-semibold m-2">Hello {fullName}!</p>
 
-        <div className="flex flex-auto justify-center items-center gap-5 mt-32">
+        <div className="flex flex-row gap-10 justify-center mt-20">
+          <div className="overflow-y-scroll max-h-[200px] w-2/5 rounded">
+            <p className="font-bold pb-1">Today's Birthdays</p>
+            {birthdays === null ? (
+              <p className="text-center">No birthdays today</p>
+            ) : (
+              birthdays.map((volunteer) => (
+                <div
+                  key={volunteer.id}
+                  className="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+                >
+                  <div>
+                    <p className="text-lg font-bold">
+                      {capitalizeWords(volunteer?.Username)}
+                    </p>
+                    <p className="font-semibold">
+                      Full Name: {capitalizeWords(volunteer.fullName)}
+                    </p>
+                    <p className="font-semibold">
+                      Birthday: {format(volunteer.birthdate, "dd MMM yyyy")}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="overflow-y-scroll max-h-[200px] w-2/5 rounded">
+            <p className="font-bold pb-1">Today's Activities</p>
+            {activities === null ? (
+              <p className="text-center">No activities today</p>
+            ) : (
+              activities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+                >
+                  <div>
+                    <p className="font-bold">
+                      {capitalizeWords(activity.activityName)}
+                    </p>
+                    <p>
+                      Date: {format(activity.activityDatetime, "dd MMM yyyy")}{" "}
+                      to {format(activity.activityDatetimeEnd, "dd MMM yyyy")}
+                    </p>
+                    <p>
+                      Time: {format(activity.activityDatetime, "p")} to{" "}
+                      {format(activity.activityDatetimeEnd, "p")}
+                    </p>
+                    <p>Volunteer Slots: {activity.volunteerSlot}</p>
+                    <p>Category: {activity.activityCategory}</p>
+                    <p>Status: {activity.activityStatus}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-auto justify-center items-center gap-5 mt-24">
           <div className="flex flex-row border border-black bg-[#E9ECEF] p-4 rounded">
             <div className="flex items-center p-2 pl-0">
               <svg

@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { onSnapshot, collection, getDoc, doc } from "firebase/firestore";
+import {
+  onSnapshot,
+  collection,
+  getDoc,
+  doc,
+  getDocs,
+  query,
+  orderBy,
+  startAt,
+  endAt,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { capitalizeWords } from "../shared/sharedFunc";
 import { format } from "date-fns";
@@ -8,6 +18,7 @@ import { Link } from "react-router-dom";
 const Forums = () => {
   const ref = collection(db, "forums");
   const [forums, setForums] = useState([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const unsubscribe = onSnapshot(ref, async (querySnapshot) => {
@@ -30,6 +41,36 @@ const Forums = () => {
     return unsubscribe;
   }, []);
 
+  const searchForums = async () => {
+    const forums = [];
+
+    const q = query(
+      ref,
+      orderBy("title"),
+      startAt(search.toLowerCase()),
+      endAt(search.toLowerCase() + "\uf8ff")
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    for (const doc of querySnapshot.docs) {
+      const author = await getAuthor(doc.data().createdBy);
+
+      forums.push({
+        ...doc.data(),
+        id: doc.id,
+        createdAt: doc.data().createdAt.toDate(),
+        createdBy: author,
+      });
+    }
+
+    if (forums.length > 0) {
+      setForums(forums);
+    } else {
+      setForums(null);
+    }
+  };
+
   const getAuthor = async (uid) => {
     const ref = doc(db, "volunteer", uid);
     var author;
@@ -51,6 +92,20 @@ const Forums = () => {
     <div>
       <div className="flex-auto pb-10 bg-[#EB4335] text-white">Forums</div>
       <div className="flex justify-end">
+        <input
+          value={search}
+          type="text"
+          placeholder="Search Forums by Title"
+          className="border border-black"
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button
+          onClick={() => {
+            searchForums();
+          }}
+        >
+          Search
+        </button>
         <Link to={"/reportforums"}>
           <p className="font-bold px-2">View Reported Forums</p>
         </Link>
@@ -58,30 +113,34 @@ const Forums = () => {
 
       <div class="flex-col h-[592px] mx-10 overflow-y-scroll">
         <div className="py-4">
-          {forums.map((forum) => (
-            <Link
-              key={forum.id}
-              to={"/forumdetail"}
-              state={{ forumId: forum.id, forumTitle: forum.title }}
-            >
-              <div
+          {forums === null ? (
+            <p>No Forums Found</p>
+          ) : (
+            forums.map((forum) => (
+              <Link
                 key={forum.id}
-                className="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+                to={"/forumdetail"}
+                state={{ forumId: forum.id, forumTitle: forum.title }}
               >
-                <div>
-                  <div className="flex flex-row">
-                    <p className="font-bold mr-1">
-                      {capitalizeWords(forum.title)}
-                    </p>
-                  </div>
+                <div
+                  key={forum.id}
+                  className="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+                >
+                  <div>
+                    <div className="flex flex-row">
+                      <p className="font-bold mr-1">
+                        {capitalizeWords(forum.title)}
+                      </p>
+                    </div>
 
-                  <p>Description: {forum.desc}</p>
-                  <p>Created By: {capitalizeWords(forum.createdBy)}</p>
-                  <p>Created At: {format(forum.createdAt, "dd MMM yyyy")}</p>
+                    <p>Description: {forum.desc}</p>
+                    <p>Created By: {capitalizeWords(forum.createdBy)}</p>
+                    <p>Created At: {format(forum.createdAt, "dd MMM yyyy")}</p>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </div>

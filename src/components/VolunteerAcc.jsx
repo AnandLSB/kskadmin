@@ -1,11 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { onSnapshot, collection } from "firebase/firestore";
+import {
+  onSnapshot,
+  collection,
+  query,
+  orderBy,
+  getDocs,
+  startAt,
+  endAt,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { Link } from "react-router-dom";
+import { capitalizeWords } from "../shared/sharedFunc";
+import { format } from "date-fns";
 
 const VolunteerAcc = () => {
   const volunteerRef = collection(db, "volunteer");
   const [volunteers, setVolunteers] = useState([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const unsubscribe = onSnapshot(volunteerRef, (snapshot) => {
@@ -21,6 +32,33 @@ const VolunteerAcc = () => {
     return unsubscribe;
   }, []);
 
+  const searchVolunteer = async () => {
+    const volunteerRef = collection(db, "volunteer");
+    const volunteerData = [];
+
+    const q = query(
+      volunteerRef,
+      orderBy("Username"),
+      startAt(search.toLowerCase()),
+      endAt(search.toLowerCase() + "\uf8ff")
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    querySnapshot.forEach((doc) => {
+      volunteerData.push({
+        ...doc.data(),
+        id: doc.id,
+      });
+    });
+
+    if (volunteerData.length > 0) {
+      setVolunteers(volunteerData);
+    } else {
+      setVolunteers(null);
+    }
+  };
+
   console.log(volunteers);
 
   return (
@@ -29,26 +67,51 @@ const VolunteerAcc = () => {
         Volunteer Accounts
       </div>
       <div>
-        <p>Search bar here</p>
+        <input
+          value={search}
+          type="text"
+          placeholder="Search Volunteers by Username"
+          className="border border-black"
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button
+          onClick={() => {
+            searchVolunteer();
+          }}
+        >
+          Search
+        </button>
       </div>
       <div className="p-5 h-[592px] overflow-y-scroll">
-        {volunteers.map((volunteer) => (
-          <Link
-            key={volunteer.id}
-            to={"/profile"}
-            state={{ volunteerId: volunteer.id }}
-          >
-            <div
+        {volunteers === null ? (
+          <p>No Volunteers Found</p>
+        ) : (
+          volunteers.map((volunteer) => (
+            <Link
               key={volunteer.id}
-              className="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+              to={"/profile"}
+              state={{ volunteerId: volunteer.id }}
             >
-              <div>
-                <p>{volunteer.id}</p>
-                <p>{volunteer?.Username}</p>
+              <div
+                key={volunteer.id}
+                className="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+              >
+                <div>
+                  <p className="text-lg font-bold">
+                    {capitalizeWords(volunteer?.Username)}
+                  </p>
+                  <p className="font-semibold">
+                    Full Name: {capitalizeWords(volunteer?.fullName)}
+                  </p>
+                  <p className="font-semibold">Email: {volunteer?.email}</p>
+                  <p className="font-semibold">
+                    Phone Number: {volunteer?.phoneNumber}
+                  </p>
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))
+        )}
       </div>
     </div>
   );

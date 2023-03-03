@@ -15,6 +15,7 @@ import Forums from "./components/Forums";
 import ForumDetail from "./components/ForumDetail";
 import ReportForums from "./components/ReportForums";
 import Analytics from "./components/Analytics";
+import Milestones from "./components/Milestones";
 import Sidebar from "./Sidebar";
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
             <Route path="/forumdetail" element={<ForumDetail />} />
             <Route path="/reportforums" element={<ReportForums />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/milestones" element={<Milestones />} />
           </Routes>
         </div>
       </div>

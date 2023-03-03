@@ -3,7 +3,11 @@ import { db } from "../firebase";
 import {
   collection,
   onSnapshot,
-  getDoc,
+  getDocs,
+  orderBy,
+  startAt,
+  endAt,
+  query,
   doc,
   updateDoc,
   deleteDoc,
@@ -20,6 +24,7 @@ const BeneficiaryInfo = () => {
   const [editObj, setEditObj] = useState({});
   const [deleteObj, setDeleteObj] = useState({});
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const categories = [
     {
       value: 1,
@@ -90,6 +95,36 @@ const BeneficiaryInfo = () => {
       setDeleteObj({});
       alert("Successfully deleted beneficiary information");
     });
+  };
+
+  const searchBeneficiary = async () => {
+    const data = [];
+
+    const q = query(
+      collection(db, "foodBankBeneficiary"),
+      orderBy("firstName"),
+      startAt(search.toLowerCase()),
+      endAt(search.toLowerCase() + "\uf8ff")
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    for (const doc of querySnapshot.docs) {
+      const author = await getAuthor(doc.data().createdBy);
+
+      data.push({
+        ...doc.data(),
+        id: doc.id,
+        createdBy: author,
+        createdAt: doc.data().createdAt.toDate(),
+      });
+    }
+
+    if (data.length > 0) {
+      setBeneficiary(data);
+    } else {
+      setBeneficiary(null);
+    }
   };
 
   const customStyles = {
@@ -293,58 +328,76 @@ const BeneficiaryInfo = () => {
       <div className="flex-auto pb-10 bg-[#EB4335] text-white">
         Beneficiary Information
       </div>
+      <input
+        value={search}
+        type="text"
+        placeholder="Search Forums by Title"
+        className="border border-black"
+        onChange={(e) => setSearch(e.target.value)}
+      />
+      <button
+        onClick={() => {
+          searchBeneficiary();
+        }}
+      >
+        Search
+      </button>
       <div class="flex-col h-[592px] mx-10 overflow-y-scroll">
         <div className="py-4">
-          {beneficiary.map((beneficiary) => (
-            <div
-              key={beneficiary.id}
-              class="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
-            >
-              <div>
-                <div className="flex flex-row">
-                  <p className="font-bold mr-1">
-                    {capitalizeWords(beneficiary.firstName)}
-                  </p>
-                  <p className="font-bold mr-1">
-                    {capitalizeWords(beneficiary.lastName)}
-                  </p>
-                </div>
+          {beneficiary === null ? (
+            <p>No Beneficiary Information Records Found</p>
+          ) : (
+            beneficiary.map((beneficiary) => (
+              <div
+                key={beneficiary.id}
+                class="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+              >
+                <div>
+                  <div className="flex flex-row">
+                    <p className="font-bold mr-1">
+                      {capitalizeWords(beneficiary.firstName)}
+                    </p>
+                    <p className="font-bold mr-1">
+                      {capitalizeWords(beneficiary.lastName)}
+                    </p>
+                  </div>
 
-                <p>Category: {beneficiary.category}</p>
-                <p>House Address: {beneficiary.houseAddress}</p>
-                <p>No Of Family Members: {beneficiary.noOfFamilyMembers}</p>
-                <p>Created By: {beneficiary.createdBy}</p>
-                <p>
-                  Created At: {format(beneficiary.createdAt, "dd MMM yyyy")}
-                </p>
-                <p>Remarks: {beneficiary.remarks}</p>
+                  <p>Category: {beneficiary.category}</p>
+                  <p>House Address: {beneficiary.houseAddress}</p>
+                  <p>No Of Family Members: {beneficiary.noOfFamilyMembers}</p>
+                  <p>Created By: {beneficiary.createdBy}</p>
+                  <p>
+                    Created At: {format(beneficiary.createdAt, "dd MMM yyyy")}
+                  </p>
+                  <p>Remarks: {beneficiary.remarks}</p>
+                </div>
+                <div className="flex flex-col justify-center px-2">
+                  <button
+                    onClick={() => {
+                      setEditOpen(true);
+                      setEditObj(beneficiary);
+                    }}
+                    className="text-lg"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeleteOpen(true);
+                      setDeleteObj({
+                        id: beneficiary.id,
+                        firstName: beneficiary.firstName,
+                        lastName: beneficiary.lastName,
+                      });
+                    }}
+                    className="text-red-600 text-lg"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-col justify-center px-2">
-                <button
-                  onClick={() => {
-                    setEditOpen(true);
-                    setEditObj(beneficiary);
-                  }}
-                  className="text-lg"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => {
-                    setDeleteOpen(true);
-                    setDeleteObj({
-                      id: beneficiary.id,
-                      firstName: beneficiary.firstName,
-                      lastName: beneficiary.lastName,
-                    });
-                  }}
-                  className="text-red-600 text-lg"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

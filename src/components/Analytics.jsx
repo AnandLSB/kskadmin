@@ -361,7 +361,7 @@ const Analytics = () => {
         </button>
       </div>
 
-      <div className="flex h-[500px] justify-center my-10">
+      <div className="flex h-[450px] justify-center my-10">
         {basis === "past3Months" &&
           dataFunc.function !== "newVolunteers" &&
           !loading && (

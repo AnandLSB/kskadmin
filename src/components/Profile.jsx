@@ -20,6 +20,7 @@ const Profile = () => {
   const [totalTime, setTotalTime] = useState({});
   const [registeredActivities, setRegisteredActivities] = useState([]);
   const [completedActivities, setCompletedActivities] = useState([]);
+  const [milestones, setMilestones] = useState([]);
   const [createdForums, setCreatedForums] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -127,6 +128,25 @@ const Profile = () => {
     }
   };
 
+  const getMilestones = async (hours) => {
+    const ref = collection(db, "milestones");
+    const q = query(ref, where("hours", "<=", hours));
+    const milestones = [];
+
+    const milestoneData = await getDocs(q);
+
+    if (!milestoneData.empty) {
+      milestoneData.forEach((doc) => {
+        milestones.push({
+          ...doc.data(),
+          id: doc.id,
+        });
+      });
+
+      setMilestones(milestones);
+    }
+  };
+
   const getVolunteerHours = async () => {
     let totalTime = 0;
     const ref = collection(db, "volunteerParticipation");
@@ -145,6 +165,8 @@ const Profile = () => {
     }
     let hours = Math.floor(totalTime);
     let minutes = Math.round((totalTime % 1) * 60);
+
+    await getMilestones(hours);
 
     return { hours, minutes };
   };
@@ -214,7 +236,10 @@ const Profile = () => {
         Volunteer Information
       </div>
       <div className="flex justify-end">
-        <button className="mx-2" onClick={() => setIsModalOpen(true)}>
+        <button
+          className="mx-2 text-red-600 text-lg font-semibold"
+          onClick={() => setIsModalOpen(true)}
+        >
           Delete
         </button>
       </div>
@@ -278,11 +303,23 @@ const Profile = () => {
           </div>
         </div>
 
-        <div className="flex flex-row w-2/6 bg-[#E9ECEF] shadow-md rounded-lg p-4 m-2 ">
+        <div className="flex flex-col w-2/6 bg-[#E9ECEF] shadow-md rounded-lg p-4 m-2 ">
           <div className="flex flex-row">
             <p className="mr-1 font-bold">Total Time Volunteered:</p>
             <p className="mr-1 font-semibold">{totalTime.hours} Hours</p>
             <p className="mr-1 font-semibold">{totalTime.minutes} Minutes</p>
+          </div>
+          <p className="font-bold mt-2 mb-1">Volunteer Milestones:</p>
+          <div className="flex flex-col h-[240px] overflow-y-scroll">
+            {milestones.map((milestone) => (
+              <div
+                key={milestone.id}
+                className="rounded border-2 border-black mb-1 p-1"
+              >
+                <p className="font-semibold">{milestone.desc}</p>
+                <p>Achieved at {milestone.hours} hour(s) of volunteering</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
