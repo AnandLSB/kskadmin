@@ -398,7 +398,7 @@ const Profile = () => {
               >
                 <div>
                   <p className="font-bold">{capitalizeWords(forum.title)}</p>
-                  <p>Volunteer Slots: {forum.desc}</p>
+                  <p>Description: {forum.desc}</p>
                   <p>
                     Created At: {format(forum.createdAt, "dd MMM yyyy")} to{" "}
                     {format(forum.createdAt, "dd MMM yyyy")}
