@@ -13,6 +13,8 @@ import {
   deleteDoc,
   getDocs,
   arrayRemove,
+  startAt,
+  endAt,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { format } from "date-fns";
@@ -43,6 +45,9 @@ const Activities = () => {
   const [volunteerSlot, setVolunteerSlot] = React.useState("");
   const [activityName, setActivityName] = React.useState("");
   const [activityDesc, setActivityDesc] = React.useState("");
+  const [searchText, setSearchText] = React.useState("");
+  const [search, setSearch] = React.useState(false);
+  const [searchData, setSearchData] = React.useState([]);
 
   const categories = [
     {
@@ -209,6 +214,37 @@ const Activities = () => {
       });
   };
 
+  const searchActivity = async () => {
+    const ref = collection(db, "activities");
+    const activityData = [];
+
+    const q = query(
+      ref,
+      orderBy("activityName"),
+      startAt(searchText.toLowerCase()),
+      endAt(searchText.toLowerCase() + "\uf8ff")
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    for (const doc of querySnapshot.docs) {
+      activityData.push({
+        ...doc.data(),
+        id: doc.id,
+        activityDatetime: doc.data().activityDatetime.toDate(),
+        activityDatetimeEnd: doc.data().activityDatetimeEnd.toDate(),
+      });
+    }
+
+    if (activityData.length > 0) {
+      setSearchData(activityData);
+    } else {
+      setSearchData(null);
+    }
+  };
+
+  console.log("Search Activity: ", searchData);
+
   const customStyles = {
     content: {
       top: "50%",
@@ -257,6 +293,7 @@ const Activities = () => {
             type="text"
             placeholder="Activity Name"
             className="bg-[#E9ECEF] border border-gray-400 rounded-sm w-full mt-1 py-1"
+            required
           />
           <input
             id="activityDesc"
@@ -265,6 +302,7 @@ const Activities = () => {
             type="text"
             placeholder="Activity Description"
             className="bg-[#E9ECEF] border border-gray-400 rounded-sm w-full mt-1 py-1"
+            required
           />
           <Select
             options={categories}
@@ -281,6 +319,7 @@ const Activities = () => {
             isSearchable={false}
             placeholder="Select Category"
             onChange={(e) => setCategory(e.label)}
+            required
           />
           <input
             id="volunteerSlot"
@@ -294,6 +333,7 @@ const Activities = () => {
             }}
             placeholder="Volunteer Slots (Numbers Only)"
             className="bg-[#E9ECEF] border border-gray-400 rounded-sm w-full mt-1 py-1"
+            required
           />
           <DatePicker
             selected={startDate}
@@ -302,6 +342,7 @@ const Activities = () => {
             showTimeSelect
             dateFormat="d MMMM yyyy h:mm aa"
             placeholderText="Activity Start Date and Time"
+            required
           />
           <DatePicker
             selected={endDate}
@@ -310,6 +351,7 @@ const Activities = () => {
             showTimeSelect
             dateFormat="d MMMM yyyy h:mm aa"
             placeholderText="Activity End Date and Time"
+            required
           />
 
           <div className="mt-4">
@@ -575,22 +617,43 @@ const Activities = () => {
         </div>
       </Modal>
 
-      <div className="flex-auto pb-10 bg-[#EB4335] text-white">
+      <div className="flex flex-auto items-center h-16 bg-[#EB4335] text-white text-3xl pl-2">
         Volunteer Activities
       </div>
-      <div className="flex-auto">
-        Search bar? Create Activities button here
+      <div className="flex flex-auto justify-center py-1">
+        <input
+          value={searchText}
+          type="text"
+          placeholder="Search Activities by Name"
+          className="border border-black w-96 rounded"
+          onChange={(e) => setSearchText(e.target.value)}
+          onFocus={() => setSearch(true)}
+          onBlur={() => setSearch(false)}
+        />
+        <button
+          onClick={() => {
+            if (searchText === "") {
+              alert("Please enter a search term");
+            } else {
+              setSearch(true);
+              searchActivity();
+            }
+          }}
+          className="inline-flex justify-center mx-2 rounded-md border border-transparent bg-[#E9ECEF] px-4 py-2 text-sm font-medium text-black hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+        >
+          Search
+        </button>
         <button className="font-bold" onClick={() => setCreateOpen(true)}>
           Create Volunteer Activity
         </button>
       </div>
 
-      <div className="flex flex-row gap-4 p-5 border border-black">
-        {/*Active Activities Col*/}
-        <div class="flex-col h-[592px] w-3/5 mr-10 overflow-y-scroll">
-          Active Activities
-          <div className="py-4">
-            {active.map((activity) => (
+      {search ? (
+        <div className="overflow-y-scroll h-[592px] py-2">
+          {searchData === null ? (
+            <p>No Results Found</p>
+          ) : (
+            searchData.map((activity) => (
               <div
                 key={activity.id}
                 class="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
@@ -632,74 +695,128 @@ const Activities = () => {
                   >
                     Delete
                   </button>
-                  <button
-                    onClick={() => {
-                      setQrId(activity.id);
-                      setActivityName(activity.activityName);
-                      setQrOpen(true);
-                    }}
-                    className="text-lg"
-                  >
-                    Generate QR
-                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
+      ) : (
+        <div className="flex flex-row gap-4 p-5">
+          {/*Upcoming Activities Col*/}
+          <div class="flex-col h-[592px] w-3/5 mr-10 overflow-y-scroll">
+            <p className="font-bold text-lg">Upcoming Activities</p>
+            <div className="py-4">
+              {active.map((activity) => (
+                <div
+                  key={activity.id}
+                  class="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+                >
+                  <div>
+                    <p className="font-bold">
+                      {capitalizeWords(activity.activityName)}
+                    </p>
+                    <p>
+                      Date: {format(activity.activityDatetime, "dd MMM yyyy")}{" "}
+                      to {format(activity.activityDatetimeEnd, "dd MMM yyyy")}
+                    </p>
+                    <p>
+                      Time: {format(activity.activityDatetime, "p")} to{" "}
+                      {format(activity.activityDatetimeEnd, "p")}
+                    </p>
+                    <p>Volunteer Slots: {activity.volunteerSlot}</p>
+                    <p>Category: {activity.activityCategory}</p>
+                    <p>Status: {activity.activityStatus}</p>
+                  </div>
+                  <div className="flex flex-col justify-center px-2">
+                    <button
+                      onClick={() => {
+                        setEditId(activity.id);
+                        setEditObj(activity);
+                        setEditOpen(true);
+                      }}
+                      className="text-lg"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDeleteId(activity.id);
+                        setActivityName(activity.activityName);
+                        setDeleteOpen(true);
+                      }}
+                      className="text-red-600 text-lg"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => {
+                        setQrId(activity.id);
+                        setActivityName(activity.activityName);
+                        setQrOpen(true);
+                      }}
+                      className="text-lg"
+                    >
+                      Generate QR
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {/*Inactive Activities Col*/}
-        <div class="flex-col h-[592px] w-3/5 ml-10 overflow-y-scroll">
-          Inactive Activities
-          <div className="py-4">
-            {inactive.map((activity) => (
-              <div
-                key={activity.id}
-                class="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
-              >
-                <div>
-                  <p className="font-bold">
-                    {capitalizeWords(activity.activityName)}
-                  </p>
-                  <p>
-                    Date: {format(activity.activityDatetime, "dd MMM yyyy")} to{" "}
-                    {format(activity.activityDatetimeEnd, "dd MMM yyyy")}
-                  </p>
-                  <p>
-                    Time: {format(activity.activityDatetime, "p")} to{" "}
-                    {format(activity.activityDatetimeEnd, "p")}
-                  </p>
-                  <p>Volunteer Slots: {activity.volunteerSlot}</p>
-                  <p>Category: {activity.activityCategory}</p>
-                  <p>Status: {activity.activityStatus}</p>
+          {/*Past Activities Col*/}
+          <div class="flex-col h-[592px] w-3/5 ml-10 overflow-y-scroll">
+            <p className="font-bold text-lg">Past Activities</p>
+            <div className="py-4">
+              {inactive.map((activity) => (
+                <div
+                  key={activity.id}
+                  class="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+                >
+                  <div>
+                    <p className="font-bold">
+                      {capitalizeWords(activity.activityName)}
+                    </p>
+                    <p>
+                      Date: {format(activity.activityDatetime, "dd MMM yyyy")}{" "}
+                      to {format(activity.activityDatetimeEnd, "dd MMM yyyy")}
+                    </p>
+                    <p>
+                      Time: {format(activity.activityDatetime, "p")} to{" "}
+                      {format(activity.activityDatetimeEnd, "p")}
+                    </p>
+                    <p>Volunteer Slots: {activity.volunteerSlot}</p>
+                    <p>Category: {activity.activityCategory}</p>
+                    <p>Status: {activity.activityStatus}</p>
+                  </div>
+                  <div className="flex flex-col justify-center px-2">
+                    <button
+                      onClick={() => {
+                        setEditId(activity.id);
+                        setEditObj(activity);
+                        setEditOpen(true);
+                      }}
+                      className="text-lg"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDeleteId(activity.id);
+                        setActivityName(activity.activityName);
+                        setDeleteOpen(true);
+                      }}
+                      className="text-red-600 text-lg"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-col justify-center px-2">
-                  <button
-                    onClick={() => {
-                      setEditId(activity.id);
-                      setEditObj(activity);
-                      setEditOpen(true);
-                    }}
-                    className="text-lg"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDeleteId(activity.id);
-                      setActivityName(activity.activityName);
-                      setDeleteOpen(true);
-                    }}
-                    className="text-red-600 text-lg"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

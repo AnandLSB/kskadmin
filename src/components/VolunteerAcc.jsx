@@ -63,26 +63,31 @@ const VolunteerAcc = () => {
 
   return (
     <div>
-      <div className="flex-auto pb-10 bg-[#EB4335] text-white">
+      <div className="flex flex-auto items-center h-16 bg-[#EB4335] text-white text-3xl pl-2">
         Volunteer Accounts
       </div>
-      <div>
+      <div className="flex justify-center py-1">
         <input
           value={search}
           type="text"
           placeholder="Search Volunteers by Username"
-          className="border border-black"
+          className="border border-black w-96 rounded"
           onChange={(e) => setSearch(e.target.value)}
         />
         <button
+          className="inline-flex justify-center mx-2 rounded-md border border-transparent bg-[#E9ECEF] px-4 py-2 text-sm font-medium text-black hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           onClick={() => {
-            searchVolunteer();
+            if (search === "") {
+              alert("Please enter a search term");
+            } else {
+              searchVolunteer();
+            }
           }}
         >
           Search
         </button>
       </div>
-      <div className="p-5 h-[592px] overflow-y-scroll">
+      <div className="p-5 h-[592px] overflow-y-scroll rounded">
         {volunteers === null ? (
           <p>No Volunteers Found</p>
         ) : (

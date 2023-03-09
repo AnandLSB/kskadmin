@@ -355,13 +355,13 @@ const Account = () => {
         </div>
       </Modal>
 
-      <div className="flex-auto pb-10 bg-[#EB4335] text-white">
+      <div className="flex flex-auto items-center h-16 bg-[#EB4335] text-white text-3xl pl-2">
         Admin Account
       </div>
-      <div className="flex flex-row gap-4">
-        <div className="flex flex-col w-3/5">
-          <div className="flex flex-row justify-between">
-            <p>Admin Account</p>
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col  w-3/5">
+          <div className="flex flex-row justify-between py-1">
+            <p className="font-bold text-lg">Your Admin Account</p>
             <div>
               <button onClick={() => setEditOpen(true)} className="font-bold">
                 Edit
@@ -377,25 +377,32 @@ const Account = () => {
         </div>
         {admin?.category === "master" ? (
           <div className="w-3/5">
-            <p>Unapproved Admin Accounts</p>
+            <p className="font-bold text-lg pb-1">Unapproved Admin Accounts</p>
             <div className="max-h-[592px] overflow-y-scroll">
-              {unapprovedAdmins.map((admin) => (
-                <div
-                  key={admin?.id}
-                  className="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
-                >
-                  <div>
-                    <p>{admin?.fullName}</p>
-                    <p>{admin?.email}</p>
-                    <p>{admin?.createdAt}</p>
+              {unapprovedAdmins.length === 0 ? (
+                <p className="text-center">No unapproved admins</p>
+              ) : (
+                unapprovedAdmins.map((admin) => (
+                  <div
+                    key={admin?.id}
+                    className="flex flex-row justify-between bg-[#E9ECEF] shadow-md rounded-lg p-4 mb-2"
+                  >
+                    <div>
+                      <p>Full Name: {admin?.fullName}</p>
+                      <p>Email: {admin?.email}</p>
+                      <p>Category: {admin?.createdAt}</p>
+                    </div>
+                    <div className="flex items-center">
+                      <button
+                        className="font-semibold"
+                        onClick={() => handleApprove(admin.id)}
+                      >
+                        Approve
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <button onClick={() => handleApprove(admin.id)}>
-                      Approve
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         ) : null}

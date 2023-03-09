@@ -11,11 +11,9 @@ import { db } from "../firebase";
 const Signin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     const ref = doc(db, "admin", email);
     await getDoc(ref).then((adminDoc) => {
@@ -26,8 +24,13 @@ const Signin = () => {
           );
         } else {
           signInWithEmailAndPassword(auth, email, password).catch((error) => {
-            setError(error.message);
-            console.log(error.message);
+            if (error.code === "auth/user-not-found") {
+              alert("No user found with this email.");
+            } else if (error.code === "auth/wrong-password") {
+              alert("Wrong password.");
+            } else {
+              alert(error.message);
+            }
           });
         }
       } else {
@@ -51,14 +54,34 @@ const Signin = () => {
   return (
     <div class="bg-[#808080] h-screen overflow-hidden flex items-center justify-center">
       <div class="bg-[#EB4335] lg:w-5/12 md:6/12 w-10/12 shadow-3xl">
-        <div class="flex justify-center">
-          <h1 className="object-center">Signin</h1>
+        <div class="flex flex-row justify-center">
+          <img
+            src={process.env.PUBLIC_URL + "/kskLogo.png"}
+            alt="logo"
+            className="w-10 h-10 ml-4 mt-8"
+          />
+          <p className="text-white text-lg font-bold pt-10">
+            Kechara Soup Kitchen Admin
+          </p>
+        </div>
+        <div className="flex justify-center">
+          <p className="font-semibold text-white pt-2">Sign In</p>
         </div>
 
         <form class="p-12 md:p-24" onSubmit={handleSubmit}>
           <div class="flex items-center text-lg mb-6 md:mb-8">
-            <svg class="absolute ml-3" width="24" viewBox="0 0 24 24">
-              <path d="M20.822 18.096c-3.439-.794-6.64-1.49-5.09-4.418 4.72-8.912 1.251-13.678-3.732-13.678-5.082 0-8.464 4.949-3.732 13.678 1.597 2.945-1.725 3.641-5.09 4.418-3.073.71-3.188 2.236-3.178 4.904l.004 1h23.99l.004-.969c.012-2.688-.092-4.222-3.176-4.935z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="absolute ml-3 w-6 h-6"
+            >
+              <path
+                strokeLinecap="round"
+                d="M16.5 12a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zm0 0c0 1.657 1.007 3 2.25 3S21 13.657 21 12a9 9 0 10-2.636 6.364M16.5 12V8.25"
+              />
             </svg>
 
             <input
@@ -67,6 +90,7 @@ const Signin = () => {
               id="email"
               class="bg-gray-200 pl-12 py-2 md:py-4 focus:outline-none w-full"
               placeholder="Email"
+              required
             />
           </div>
           <div class="flex items-center text-lg mb-6 md:mb-8">
@@ -80,16 +104,24 @@ const Signin = () => {
               id="password"
               class="bg-gray-200 pl-12 py-2 md:py-4 focus:outline-none w-full"
               placeholder="Password"
+              required
             />
           </div>
-          <button class="font-medium p-2 md:p-4 text-white uppercase w-full">
+          <button className="bg-[#7f8fa6] font-medium p-2 md:p-4 text-white uppercase w-full">
             Login
           </button>
         </form>
-        <button onClick={handlePasswordReset}>Forgot Password</button>
-        <p>
-          <Link to={"/signup"}> Create Account</Link>
-        </p>
+        <div className="flex flex-row gap-4 justify-center items-center py-4">
+          <button
+            onClick={handlePasswordReset}
+            className="text-white font-lg font-semibold"
+          >
+            Forgot Password
+          </button>
+          <p className="text-white font-lg font-semibold">
+            <Link to={"/signup"}> Create Account</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
