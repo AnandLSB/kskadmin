@@ -45,10 +45,10 @@ const ForumDetail = () => {
 
   return (
     <div>
-      <div className="flex-auto pb-10 bg-[#EB4335] text-white">
+      <div className="flex flex-auto items-center h-16 bg-[#EB4335] text-white text-3xl pl-2">
         Forum - {location.state.forumTitle}
       </div>
-      <div class="flex-col max-h-[592px] mx-10 overflow-y-scroll">
+      <div class="flex-col max-h-[592px] mx-10 overflow-y-scroll mt-2">
         <div className="py-4">
           {forumPosts.map((forum) => (
             <div

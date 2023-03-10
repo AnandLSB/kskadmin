@@ -172,7 +172,7 @@ const ReportForums = () => {
         </div>
       </Modal>
 
-      <div className="flex-auto pb-10 bg-[#EB4335] text-white">
+      <div className="flex flex-auto items-center h-16 bg-[#EB4335] text-white text-3xl pl-2">
         Reported Forums
       </div>
 
