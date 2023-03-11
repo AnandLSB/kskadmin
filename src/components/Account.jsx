@@ -43,9 +43,15 @@ const Account = () => {
   );
 
   const reauthenticateUser = () => {
-    reauthenticateWithCredential(auth.currentUser, credential).catch(() => {
-      alert("Incorrect current password, please re-enter current password");
-    });
+    reauthenticateWithCredential(auth.currentUser, credential)
+      .then(() => {
+        alert(
+          "Re-authenticated successfully, please proceed to change email or password"
+        );
+      })
+      .catch(() => {
+        alert("Incorrect current password, please re-enter current password");
+      });
   };
 
   useEffect(() => {
@@ -71,7 +77,8 @@ const Account = () => {
     return unsub;
   }, []);
 
-  const handleEdit = async () => {
+  const handleEdit = async (e) => {
+    e.preventDefault();
     const ref = doc(db, "admin", auth.currentUser.email);
 
     await updateDoc(ref, {
@@ -80,14 +87,12 @@ const Account = () => {
       alert("Admin account updated!");
       setEditOpen(false);
       setEditName("");
+      getAdminData();
     });
   };
 
   const handleEmail = async () => {
     updateEmail(auth.currentUser, newEmail)
-      .catch((e) => {
-        alert("Failed to update email");
-      })
       .then(async () => {
         await deleteDoc(doc(db, "admin", admin.email));
 
@@ -96,9 +101,16 @@ const Account = () => {
           email: newEmail,
           createdAt: Timestamp.fromDate(new Date(admin.createdAt)),
         }).then(() => {
+          setAdmin({
+            ...admin,
+            email: newEmail,
+          });
           navigate("/account");
           alert("Email updated successfully");
         });
+      })
+      .catch((e) => {
+        alert("Failed to update email");
       });
   };
 
