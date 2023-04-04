@@ -402,7 +402,7 @@ const Account = () => {
                     <div>
                       <p>Full Name: {admin?.fullName}</p>
                       <p>Email: {admin?.email}</p>
-                      <p>Category: {admin?.createdAt}</p>
+                      <p>Created At: {admin?.createdAt}</p>
                     </div>
                     <div className="flex items-center">
                       <button
