@@ -287,7 +287,9 @@ const Analytics = () => {
 
   return (
     <div className="flex flex-col">
-      <div className="flex-auto pb-10 bg-[#EB4335] text-white">Analytics</div>
+      <div className="flex flex-auto items-center h-16 bg-[#EB4335] text-white text-3xl pl-2">
+        Analytics
+      </div>
 
       <div className="flex flex-row">
         <div className="flex flex-row items-center mr-5">
